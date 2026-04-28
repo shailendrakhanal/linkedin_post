@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Post Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f3ee; --surface: #fff; --surface2: #f0ede6;
+  --border: #e0dbd0; --border-strong: #c8c2b4;
+  --text: #1a1814; --text-muted: #6b6456; --text-hint: #a09888;
+  --accent: #0a66c2; --accent-light: #e8f0fa; --accent-muted: #c5d9f0;
+  --green: #057642; --green-light: #e5f3ec;
+  --radius: 10px; --radius-lg: 16px;
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+.page { max-width: 740px; margin: 0 auto; }
+
+/* Header */
+.header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; }
+.header h1 { font-family: 'DM Serif Display', serif; font-size: 26px; font-weight: 400; line-height: 1.2; }
+.header p { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+.li-badge { display: flex; align-items: center; gap: 6px; background: var(--accent-light); border: 1px solid var(--accent-muted); border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.li-badge svg { width: 13px; height: 13px; fill: var(--accent); }
+
+/* API Key */
+.api-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.4rem; margin-bottom: 1.25rem; }
+.api-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+.api-row { display: flex; gap: 8px; align-items: center; }
+.api-row input { flex: 1; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); }
+.api-row input:focus { outline: none; border-color: var(--accent); }
+.api-save-btn { padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+.api-save-btn:hover { border-color: var(--accent); color: var(--accent); }
+.api-status { font-size: 11px; margin-top: 5px; }
+.api-status.ok { color: var(--green); }
+.api-status.err { color: #c0392b; }
+.api-help { font-size: 11px; color: var(--text-hint); margin-top: 4px; }
+.api-help a { color: var(--accent); text-decoration: none; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 4px; margin-bottom: 1.5rem; }
+.tab { flex: 1; padding: 9px; border-radius: 10px; border: none; background: transparent; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; color: var(--text-muted); cursor: pointer; transition: all 0.15s; text-align: center; }
+.tab.active { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.25rem; }
+.card-section { padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border); }
+.card-section:last-child { border-bottom: none; }
+.section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-hint); margin-bottom: 9px; }
+
+textarea { width: 100%; resize: vertical; min-height: 95px; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: 'DM Sans', sans-serif; line-height: 1.6; background: var(--bg); color: var(--text); }
+textarea:focus { outline: none; border-color: var(--border-strong); }
+textarea::placeholder { color: var(--text-hint); }
+
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); cursor: pointer; transition: all 0.15s; user-select: none; }
+.pill:hover { border-color: var(--border-strong); color: var(--text); }
+.pill.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent-muted); }
+
+.tone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.tone-card { padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); cursor: pointer; transition: all 0.15s; }
+.tone-card.active { background: var(--accent-light); border-color: var(--accent-muted); }
+.tone-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.tone-desc { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+.tone-card.active .tone-name { color: var(--accent); }
+
+.length-row { display: flex; gap: 7px; }
+.length-btn { flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text-muted); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; text-align: center; transition: all 0.15s; }
+.length-btn.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent-muted); }
+
+.generate-btn { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+.generate-btn:hover { background: #0958a8; }
+.generate-btn:disabled { background: var(--border-strong); cursor: not-allowed; }
+
+/* Result */
+.result-wrap { display: none; }
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.25rem; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.result-header { padding: 10px 1.4rem; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.result-title { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.char-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--border); color: var(--text-hint); }
+.result-body { padding: 1.4rem; font-size: 14px; line-height: 1.75; color: var(--text); white-space: pre-wrap; min-height: 80px; }
+.result-body.loading { color: var(--text-hint); font-style: italic; font-size: 13px; }
+
+.preview-pane { background: var(--surface2); border-top: 1px solid var(--border); padding: 1rem 1.4rem; }
+.preview-label { font-size: 11px; color: var(--text-hint); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em; }
+.li-preview { background: #fff; border: 1px solid #dce6f1; border-radius: 8px; padding: 13px 15px; }
+.li-author { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.li-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #0a66c2, #1c85e8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; flex-shrink: 0; font-family: -apple-system, sans-serif; }
+.li-name { font-size: 13px; font-weight: 600; color: #000; font-family: -apple-system, sans-serif; }
+.li-title-text { font-size: 11px; color: #666; font-family: -apple-system, sans-serif; }
+.li-post-text { font-size: 13px; color: #000; line-height: 1.6; white-space: pre-wrap; font-family: -apple-system, sans-serif; }
+
+.action-row { padding: 10px 1.4rem; border-top: 1px solid var(--border); display: flex; gap: 7px; flex-wrap: wrap; }
+.action-btn { padding: 7px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
+.action-btn:hover { border-color: var(--border-strong); color: var(--text); }
+.action-btn.primary { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+.action-btn.primary:hover { background: #0958a8; }
+.action-btn.success { background: var(--green-light); color: var(--green); border-color: #a3d4bc; }
+
+.refine-section { display: none; padding: 0.9rem 1.4rem; border-top: 1px solid var(--border); background: var(--bg); }
+.refine-row { display: flex; gap: 8px; }
+.refine-input { flex: 1; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--text); }
+.refine-input:focus { outline: none; border-color: var(--accent); }
+.refine-btn { padding: 8px 13px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; }
+.refine-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── DISCOVER TAB ── */
+#tab-discover { display: none; }
+.search-bar { display: flex; gap: 8px; margin-bottom: 1rem; }
+.search-bar input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--text); }
+.search-bar input:focus { outline: none; border-color: var(--accent); }
+.search-btn { padding: 9px 18px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+.search-btn:hover { background: #0958a8; }
+.search-btn:disabled { background: var(--border-strong); cursor: not-allowed; }
+
+.topic-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.1rem; }
+.topic-chip { font-size: 11px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.topic-chip:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent-muted); }
+
+.news-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+.news-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.2rem; transition: border-color 0.15s; }
+.news-item:hover { border-color: var(--border-strong); }
+.news-source { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-hint); margin-bottom: 4px; }
+.news-title { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 5px; }
+.news-title a { color: inherit; text-decoration: none; }
+.news-title a:hover { color: var(--accent); }
+.news-snippet { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
+.news-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.news-date { font-size: 11px; color: var(--text-hint); }
+.repost-btn { font-size: 11px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--accent-muted); background: var(--accent-light); color: var(--accent); cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+.repost-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.no-results { text-align: center; padding: 2.5rem 1rem; color: var(--text-hint); font-size: 13px; }
+
+/* Repost composer */
+.repost-composer { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 1.25rem; display: none; animation: fadeUp 0.3s ease; }
+.repost-header { padding: 10px 1.4rem; background: #fff7e6; border-bottom: 1px solid #f0d9a8; display: flex; align-items: center; justify-content: space-between; }
+.repost-header-title { font-size: 12px; font-weight: 500; color: #7a5200; text-transform: uppercase; letter-spacing: 0.05em; }
+.repost-close { font-size: 18px; color: var(--text-hint); cursor: pointer; line-height: 1; }
+.repost-close:hover { color: var(--text); }
+.repost-original { padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); background: var(--bg); }
+.repost-original-label { font-size: 11px; color: var(--text-hint); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.repost-original textarea { min-height: 80px; font-size: 13px; }
+.repost-angle { padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); }
+.angle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
+.angle-card { padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); cursor: pointer; transition: all 0.15s; }
+.angle-card.active { background: #fff7e6; border-color: #f0c060; }
+.angle-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.angle-desc { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+.angle-card.active .angle-name { color: #7a5200; }
+.repost-generate-btn { width: 100%; padding: 11px; background: #c97d00; color: #fff; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+.repost-generate-btn:hover { background: #a86900; }
+.repost-generate-btn:disabled { background: var(--border-strong); cursor: not-allowed; }
+
+/* History */
+.history-section { margin-bottom: 1.5rem; }
+.history-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-hint); margin-bottom: 8px; }
+.history-list { display: flex; flex-direction: column; gap: 5px; }
+.history-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 13px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.history-item:hover { border-color: var(--border-strong); }
+.history-snippet { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.history-date { font-size: 11px; color: var(--text-hint); white-space: nowrap; }
+
+.toast { position: fixed; bottom: 22px; right: 22px; background: var(--text); color: #fff; padding: 9px 16px; border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif; opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none; z-index: 999; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.footer { text-align: center; font-size: 11px; color: var(--text-hint); padding-top: 1rem; }
+
+@media (max-width: 500px) {
+  .tone-grid { grid-template-columns: 1fr 1fr; }
+  .angle-grid { grid-template-columns: 1fr; }
+  .header { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>LinkedIn Post Agent</h1>
+      <p>Write your own post · Discover &amp; repost industry news</p>
+    </div>
+    <div class="li-badge">
+      <svg viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+      LinkedIn
+    </div>
+  </div>
+
+  <!-- API Key -->
+  <div class="api-section">
+    <div class="api-label">Google Gemini API Key (free)</div>
+    <div class="api-row">
+      <input type="password" id="api-key" placeholder="AIza..." autocomplete="off">
+      <button class="api-save-btn" onclick="saveKey()">Save</button>
+    </div>
+    <div class="api-status" id="api-status"></div>
+    <div class="api-help">Free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a> — no credit card needed.</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('write')">✍️ &nbsp;Write post</button>
+    <button class="tab" onclick="switchTab('discover')">🔍 &nbsp;Discover &amp; repost</button>
+  </div>
+
+  <!-- ══ WRITE TAB ══ -->
+  <div id="tab-write">
+    <div class="card">
+      <div class="card-section">
+        <div class="section-label">What happened this week?</div>
+        <textarea id="topic" placeholder="e.g. Submitted my CE 500 GIS project on crash hotspot analysis using KDE in ArcGIS Pro on Utah data — found interesting clusters near rural interchanges..."></textarea>
+      </div>
+      <div class="card-section">
+        <div class="section-label">Post type</div>
+        <div class="pills" id="type-pills">
+          <div class="pill active" data-val="weekly research update">Weekly update</div>
+          <div class="pill" data-val="research insight or finding">Research insight</div>
+          <div class="pill" data-val="project milestone">Milestone</div>
+          <div class="pill" data-val="lesson learned from research or teaching">Lesson learned</div>
+          <div class="pill" data-val="conference or academic event">Conference / event</div>
+          <div class="pill" data-val="teaching experience">Teaching</div>
+        </div>
+      </div>
+      <div class="card-section">
+        <div class="section-label">Tone</div>
+        <div class="tone-grid">
+          <div class="tone-card active" data-val="professional yet warm and authentic">
+            <div class="tone-name">Grounded</div>
+            <div class="tone-desc">Warm, real, no fluff</div>
+          </div>
+          <div class="tone-card" data-val="confident thought leadership with a strong perspective">
+            <div class="tone-name">Thought leader</div>
+            <div class="tone-desc">Bold take, big idea</div>
+          </div>
+          <div class="tone-card" data-val="storytelling with a narrative arc">
+            <div class="tone-name">Storytelling</div>
+            <div class="tone-desc">Arc, detail, relatable</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-section">
+        <div class="section-label">Length</div>
+        <div class="length-row">
+          <button class="length-btn" data-val="short (100–150 words)">Short</button>
+          <button class="length-btn active" data-val="medium (180–250 words)">Medium</button>
+          <button class="length-btn" data-val="long (280–350 words)">Long</button>
+        </div>
+      </div>
+      <div class="card-section">
+        <button class="generate-btn" id="gen-btn" onclick="generate()">Generate post</button>
+      </div>
+    </div>
+
+    <!-- Write result -->
+    <div class="result-wrap" id="write-result-wrap">
+      <div class="result-card">
+        <div class="result-header">
+          <span class="result-title">Generated post</span>
+          <span class="char-badge" id="write-char-badge">— chars</span>
+        </div>
+        <div class="result-body" id="write-result-body"></div>
+        <div class="preview-pane">
+          <div class="preview-label">LinkedIn preview</div>
+          <div class="li-preview">
+            <div class="li-author">
+              <div class="li-avatar">S</div>
+              <div>
+                <div class="li-name">Shailendra</div>
+                <div class="li-title-text">PhD Student · Transportation Engineering · Ole Miss</div>
+              </div>
+            </div>
+            <div class="li-post-text" id="write-preview-text"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="action-btn primary" onclick="openLinkedIn('write')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            Open LinkedIn &amp; paste
+          </button>
+          <button class="action-btn" id="write-copy-btn" onclick="copyPost('write')">Copy</button>
+          <button class="action-btn" onclick="toggleRefine('write')">Refine ✦</button>
+          <button class="action-btn" onclick="generate()">Regenerate</button>
+        </div>
+        <div class="refine-section" id="write-refine-section">
+          <div class="refine-row">
+            <input class="refine-input" id="write-refine-input" placeholder="e.g. Make it shorter, stronger opening, remove the last question...">
+            <button class="refine-btn" onclick="refine('write')">Apply →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section" id="history-section" style="display:none;">
+      <div class="history-title">Recent posts</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ DISCOVER TAB ══ -->
+  <div id="tab-discover" style="display:none;">
+
+    <!-- Quick topic chips -->
+    <div class="card-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1rem;padding:1rem 1.2rem;">
+      <div class="section-label" style="margin-bottom:8px;">Quick topics</div>
+      <div class="topic-chips">
+        <span class="topic-chip" onclick="quickSearch('alternative intersections road safety')">Alternative intersections</span>
+        <span class="topic-chip" onclick="quickSearch('diverging diamond interchange DDI')">Diverging diamond interchange</span>
+        <span class="topic-chip" onclick="quickSearch('FHWA road safety innovation')">FHWA safety</span>
+        <span class="topic-chip" onclick="quickSearch('roundabout safety benefits')">Roundabouts</span>
+        <span class="topic-chip" onclick="quickSearch('NCHRP transportation research')">NCHRP research</span>
+        <span class="topic-chip" onclick="quickSearch('pedestrian cyclist road safety infrastructure')">Vulnerable road users</span>
+        <span class="topic-chip" onclick="quickSearch('autonomous vehicle transportation safety')">AV &amp; safety</span>
+        <span class="topic-chip" onclick="quickSearch('traffic signal optimization smart intersection')">Smart intersections</span>
+      </div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Search news: e.g. FHWA alternative intersections, road safety 2025..." onkeydown="if(event.key==='Enter') searchNews()">
+      <button class="search-btn" id="search-btn" onclick="searchNews()">Search</button>
+    </div>
+
+    <!-- News results -->
+    <div class="news-list" id="news-list">
+      <div class="no-results">Search for a topic above or pick a quick topic to find relevant news and articles to repost.</div>
+    </div>
+
+    <!-- Repost composer -->
+    <div class="repost-composer" id="repost-composer">
+      <div class="repost-header">
+        <span class="repost-header-title">✦ Write repost commentary</span>
+        <span class="repost-close" onclick="closeRepost()">×</span>
+      </div>
+      <div class="repost-original">
+        <div class="repost-original-label">Original article / post to comment on</div>
+        <textarea id="repost-source" placeholder="Paste the article headline, key points, or URL here..."></textarea>
+      </div>
+      <div class="card-section" style="border-bottom:1px solid var(--border);">
+        <div class="section-label">Your angle</div>
+        <div class="angle-grid">
+          <div class="angle-card active" data-val="connect this news to your own PhD research on alternative intersections">
+            <div class="angle-name">Connect to my research</div>
+            <div class="angle-desc">Link to NCHRP 17-131 work</div>
+          </div>
+          <div class="angle-card" data-val="share a professional opinion or reaction to this news">
+            <div class="angle-name">My take / opinion</div>
+            <div class="angle-desc">Bold reaction to the news</div>
+          </div>
+          <div class="angle-card" data-val="explain why this matters for transportation practitioners and engineers">
+            <div class="angle-name">Why it matters</div>
+            <div class="angle-desc">Educate your network</div>
+          </div>
+          <div class="angle-card" data-val="ask a thoughtful question sparked by this news to spark discussion">
+            <div class="angle-name">Spark discussion</div>
+            <div class="angle-desc">Pose a key question</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-section">
+        <button class="repost-generate-btn" id="repost-gen-btn" onclick="generateRepost()">Generate repost commentary</button>
+      </div>
+    </div>
+
+    <!-- Repost result -->
+    <div class="result-wrap" id="repost-result-wrap">
+      <div class="result-card">
+        <div class="result-header">
+          <span class="result-title">Repost commentary</span>
+          <span class="char-badge" id="repost-char-badge">— chars</span>
+        </div>
+        <div class="result-body" id="repost-result-body"></div>
+        <div class="preview-pane">
+          <div class="preview-label">LinkedIn preview</div>
+          <div class="li-preview">
+            <div class="li-author">
+              <div class="li-avatar">S</div>
+              <div>
+                <div class="li-name">Shailendra</div>
+                <div class="li-title-text">PhD Student · Transportation Engineering · Ole Miss</div>
+              </div>
+            </div>
+            <div class="li-post-text" id="repost-preview-text"></div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="action-btn primary" onclick="openLinkedIn('repost')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            Open LinkedIn &amp; paste
+          </button>
+          <button class="action-btn" id="repost-copy-btn" onclick="copyPost('repost')">Copy</button>
+          <button class="action-btn" onclick="toggleRefine('repost')">Refine ✦</button>
+          <button class="action-btn" onclick="generateRepost()">Regenerate</button>
+        </div>
+        <div class="refine-section" id="repost-refine-section">
+          <div class="refine-row">
+            <input class="refine-input" id="repost-refine-input" placeholder="e.g. Make it shorter, add more about safety data, stronger hook...">
+            <button class="refine-btn" onclick="refine('repost')">Apply →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Powered by Google Gemini (free) · News via Google News RSS · API key stored in your browser only</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let selectedType = 'weekly research update';
+let selectedTone = 'professional yet warm and authentic';
+let selectedLength = 'medium (180–250 words)';
+let selectedAngle = 'connect this news to your own PhD research on alternative intersections';
+let writePost = '';
+let repostPost = '';
+let postHistory = JSON.parse(localStorage.getItem('li_history_v3') || '[]');
+
+// ── API Key ──
+const savedKey = localStorage.getItem('gemini_key');
+if (savedKey) { document.getElementById('api-key').value = savedKey; showStatus('Key loaded ✓', true); }
+
+function saveKey() {
+  const k = document.getElementById('api-key').value.trim();
+  if (!k.startsWith('AIza')) { showStatus('Invalid key — should start with AIza', false); return; }
+  localStorage.setItem('gemini_key', k);
+  showStatus('Key saved ✓', true);
+}
+function showStatus(msg, ok) {
+  const el = document.getElementById('api-status');
+  el.textContent = msg; el.className = 'api-status ' + (ok ? 'ok' : 'err');
+}
+function getKey() { return localStorage.getItem('gemini_key') || document.getElementById('api-key').value.trim(); }
+
+// ── Tabs ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='write')||(i===1&&tab==='discover')));
+  document.getElementById('tab-write').style.display = tab === 'write' ? 'block' : 'none';
+  document.getElementById('tab-discover').style.display = tab === 'discover' ? 'block' : 'none';
+}
+
+// ── Selectors ──
+document.querySelectorAll('#type-pills .pill').forEach(p => p.addEventListener('click', () => {
+  document.querySelectorAll('#type-pills .pill').forEach(x => x.classList.remove('active'));
+  p.classList.add('active'); selectedType = p.dataset.val;
+}));
+document.querySelectorAll('.tone-card').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.tone-card').forEach(x => x.classList.remove('active'));
+  c.classList.add('active'); selectedTone = c.dataset.val;
+}));
+document.querySelectorAll('.length-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.length-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active'); selectedLength = b.dataset.val;
+}));
+document.querySelectorAll('.angle-card').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.angle-card').forEach(x => x.classList.remove('active'));
+  c.classList.add('active'); selectedAngle = c.dataset.val;
+}));
+
+// ── Gemini call ──
+async function callGemini(prompt) {
+  const key = getKey();
+  if (!key) { toast('Add your Gemini API key first'); return null; }
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.85, maxOutputTokens: 1024 } })
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); toast(e?.error?.message || 'API error ' + res.status); return null; }
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+  } catch(e) { toast('Network error — check your connection'); return null; }
+}
+
+// ── Write tab ──
+async function generate() {
+  const topic = document.getElementById('topic').value.trim();
+  if (!topic) { document.getElementById('topic').focus(); toast('Describe what happened first'); return; }
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true; btn.textContent = 'Writing…';
+  const body = document.getElementById('write-result-body');
+  document.getElementById('write-result-wrap').style.display = 'block';
+  body.className = 'result-body loading'; body.textContent = 'Gemini is writing your post…';
+  document.getElementById('write-preview-text').textContent = '';
+
+  const prompt = `You are a LinkedIn ghostwriter for Shailendra, a PhD student in Transportation Engineering at the University of Mississippi (Ole Miss). He is a Graduate Research Assistant on NCHRP Project 17-131 — a nationally funded project on alternative intersections and interchanges, with HDR Engineering and NC State University. He TAs CE 208 (Civil Engineering Graphics). He holds an Engineer Intern credential, is from Nepal, and is passionate about transportation safety, geospatial analysis, and road design.
+
+Write a LinkedIn post about: ${topic}
+
+Rules:
+- Tone: ${selectedTone}
+- Post type: ${selectedType}
+- Length: ${selectedLength}
+- Open with a strong hook — NO "Excited to share" or "Thrilled to announce"
+- Write like a real human, short paragraphs separated by blank lines
+- End with a reflection, question, or soft call to action
+- Include 3–5 hashtags at the end: #TransportationEngineering #PhDLife #RoadSafety or similar
+- Output ONLY the post text — no preamble, no quotes`;
+
+  const text = await callGemini(prompt);
+  if (text) {
+    writePost = text;
+    body.className = 'result-body'; body.textContent = writePost;
+    document.getElementById('write-preview-text').textContent = writePost;
+    document.getElementById('write-char-badge').textContent = writePost.length + ' chars';
+    saveToHistory(topic, writePost, 'original');
+    renderHistory();
+  } else {
+    body.className = 'result-body loading'; body.textContent = 'Something went wrong. Check your API key.';
+  }
+  btn.disabled = false; btn.textContent = 'Generate post';
+}
+
+// ── Discover tab ──
+function quickSearch(q) {
+  document.getElementById('search-input').value = q;
+  searchNews();
+}
+
+async function searchNews() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true; btn.textContent = 'Searching…';
+  const list = document.getElementById('news-list');
+  list.innerHTML = '<div class="no-results">Fetching news…</div>';
+
+  // Google News RSS via rss2json (free, no key needed)
+  const encoded = encodeURIComponent(q + ' transportation');
+  const rssUrl = `https://news.google.com/rss/search?q=${encoded}&hl=en-US&gl=US&ceid=US:en`;
+  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=8`;
+
+  try {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    if (data.status !== 'ok' || !data.items?.length) {
+      list.innerHTML = '<div class="no-results">No results found. Try a different search term.</div>';
+    } else {
+      renderNews(data.items);
+    }
+  } catch(e) {
+    list.innerHTML = '<div class="no-results">Could not fetch news. Check your internet connection.</div>';
+  }
+  btn.disabled = false; btn.textContent = 'Search';
+}
+
+function renderNews(items) {
+  const list = document.getElementById('news-list');
+  list.innerHTML = items.map((item, i) => {
+    const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const snippet = item.description ? item.description.replace(/<[^>]+>/g, '').slice(0, 140) + '…' : '';
+    const source = item.author || extractDomain(item.link) || 'News';
+    return `
+      <div class="news-item">
+        <div class="news-source">${source}</div>
+        <div class="news-title"><a href="${item.link}" target="_blank">${item.title}</a></div>
+        ${snippet ? `<div class="news-snippet">${snippet}</div>` : ''}
+        <div class="news-footer">
+          <span class="news-date">${date}</span>
+          <button class="repost-btn" onclick="startRepost(${i})">+ Repost with commentary</button>
+        </div>
+      </div>`;
+  }).join('');
+  // Store items for repost
+  window._newsItems = items;
+}
+
+function extractDomain(url) {
+  try { return new URL(url).hostname.replace('www.', ''); } catch { return ''; }
+}
+
+function startRepost(i) {
+  const item = window._newsItems?.[i];
+  if (item) {
+    const text = `Title: ${item.title}\nSource: ${extractDomain(item.link)}\nLink: ${item.link}\n\n${(item.description||'').replace(/<[^>]+>/g,'').slice(0,300)}`;
+    document.getElementById('repost-source').value = text;
+  }
+  document.getElementById('repost-composer').style.display = 'block';
+  document.getElementById('repost-composer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeRepost() {
+  document.getElementById('repost-composer').style.display = 'none';
+}
+
+async function generateRepost() {
+  const source = document.getElementById('repost-source').value.trim();
+  if (!source) { document.getElementById('repost-source').focus(); toast('Paste the article content first'); return; }
+
+  const btn = document.getElementById('repost-gen-btn');
+  btn.disabled = true; btn.textContent = 'Writing…';
+  const body = document.getElementById('repost-result-body');
+  document.getElementById('repost-result-wrap').style.display = 'block';
+  body.className = 'result-body loading'; body.textContent = 'Gemini is writing your commentary…';
+  document.getElementById('repost-preview-text').textContent = '';
+
+  const prompt = `You are a LinkedIn ghostwriter for Shailendra, a PhD student in Transportation Engineering at the University of Mississippi (Ole Miss). He researches alternative intersections and interchanges (NCHRP Project 17-131 with HDR Engineering and NC State), and is passionate about transportation safety and geospatial analysis. He is from Nepal.
+
+He wants to repost or comment on this article/news:
+---
+${source}
+---
+
+Write a LinkedIn commentary post with this angle: ${selectedAngle}
+
+Rules:
+- 100–200 words
+- Strong opening hook — no "Excited to share" openers
+- Reference the article/news naturally (don't just summarize — add YOUR perspective)
+- Connect to transportation safety, intersection design, or your research where relevant
+- End with a question or call to action to drive engagement
+- Include 3–4 relevant hashtags: #TransportationEngineering #RoadSafety #AII or similar
+- Output ONLY the post text — no preamble, no quotes`;
+
+  const text = await callGemini(prompt);
+  if (text) {
+    repostPost = text;
+    body.className = 'result-body'; body.textContent = repostPost;
+    document.getElementById('repost-preview-text').textContent = repostPost;
+    document.getElementById('repost-char-badge').textContent = repostPost.length + ' chars';
+    saveToHistory(source.slice(0, 80), repostPost, 'repost');
+  } else {
+    body.className = 'result-body loading'; body.textContent = 'Something went wrong. Check your API key.';
+  }
+  btn.disabled = false; btn.textContent = 'Generate repost commentary';
+}
+
+// ── Shared ──
+async function refine(type) {
+  const isWrite = type === 'write';
+  const instruction = document.getElementById(`${type}-refine-input`).value.trim();
+  const current = isWrite ? writePost : repostPost;
+  if (!instruction || !current) return;
+  const body = document.getElementById(`${type}-result-body`);
+  body.className = 'result-body loading'; body.textContent = 'Refining…';
+  const text = await callGemini(`Here is my LinkedIn post:\n\n${current}\n\nPlease refine it: ${instruction}\n\nReturn ONLY the revised post — no preamble, no quotes.`);
+  if (text) {
+    if (isWrite) writePost = text; else repostPost = text;
+    body.className = 'result-body'; body.textContent = text;
+    document.getElementById(`${type}-preview-text`).textContent = text;
+    document.getElementById(`${type}-char-badge`).textContent = text.length + ' chars';
+    document.getElementById(`${type}-refine-input`).value = '';
+  } else { body.className = 'result-body'; body.textContent = current; }
+}
+
+function toggleRefine(type) {
+  const s = document.getElementById(`${type}-refine-section`);
+  s.style.display = s.style.display === 'block' ? 'none' : 'block';
+  if (s.style.display === 'block') document.getElementById(`${type}-refine-input`).focus();
+}
+
+function copyPost(type) {
+  const text = type === 'write' ? writePost : repostPost;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(`${type}-copy-btn`);
+    btn.textContent = 'Copied ✓'; btn.classList.add('success');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('success'); }, 2000);
+  });
+}
+
+function openLinkedIn(type) {
+  const text = type === 'write' ? writePost : repostPost;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    toast('Post copied — paste it on LinkedIn!');
+    setTimeout(() => window.open('https://www.linkedin.com/feed/', '_blank'), 600);
+  });
+}
+
+function saveToHistory(topic, post, type) {
+  postHistory.unshift({ topic: topic.slice(0, 80), post, type, date: new Date().toLocaleDateString() });
+  if (postHistory.length > 12) postHistory = postHistory.slice(0, 12);
+  localStorage.setItem('li_history_v3', JSON.stringify(postHistory));
+}
+
+function renderHistory() {
+  if (!postHistory.length) return;
+  document.getElementById('history-section').style.display = 'block';
+  document.getElementById('history-list').innerHTML = postHistory.slice(0, 5).map((h, i) => `
+    <div class="history-item" onclick="loadHistory(${i})">
+      <span class="history-snippet">${h.type === 'repost' ? '↗ ' : ''}${h.topic}…</span>
+      <span class="history-date">${h.date}</span>
+    </div>`).join('');
+}
+
+function loadHistory(i) {
+  const h = postHistory[i];
+  writePost = h.post;
+  document.getElementById('write-result-wrap').style.display = 'block';
+  const body = document.getElementById('write-result-body');
+  body.className = 'result-body'; body.textContent = writePost;
+  document.getElementById('write-preview-text').textContent = writePost;
+  document.getElementById('write-char-badge').textContent = writePost.length + ' chars';
+  switchTab('write');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+renderHistory();
+document.getElementById('write-refine-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') refine('write'); });
+document.getElementById('repost-refine-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') refine('repost'); });
+</script>
+</body>
+</html>
